@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extra/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Word表格生成</title>
+    <!--    <link rel="stylesheet" type="text/css" th:href="@{/css/bootstrap.min.css}" />-->
+    <link href="https://www.w3school.com.cn/lib/bs/bootstrap.css" rel="stylesheet">
+</head>
+<body>
+<!--<form>-->
+<!--    <label for="dbUrl">主&ensp;&ensp;机:</label>-->
+<!--    <input type="text" id="dbUrl" name="dbUrl" value="127.0.0.1:3306" required><br><br>-->
+
+<!--    <label for="dbUrl">端&ensp;&ensp;口:</label>-->
+<!--    <input type="text" id="port" name="port" value="3306" required><br><br>-->
+
+<!--    <label for="dbName">数据库:</label>-->
+<!--    <input type="text" id="dbName" name="dbName" value="test_db" required><br><br>-->
+
+<!--    <label for="username">用户名:</label>-->
+<!--    <input type="text" id="username" name="username" value="root" required><br><br>-->
+
+<!--    <label for="password">密&ensp;&ensp;码:</label>-->
+<!--    <input type="password" id="password" name="password" value="mysql" required><br><br>-->
+
+<!--    <input type="submit" value="Submit">-->
+<!--</form>-->
+
+<div style="width: 500px;margin: 0 auto">
+    <h2 style="text-align: center;margin-bottom: 20px">表结构生成器</h2>
+    <form>
+        <div class="form-group row">
+            <label for="dbUrl" class="col-sm-2 col-form-label">主&ensp;&ensp;机:</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="dbUrl" name="dbUrl" value="127.0.0.1:3306" required>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <label for="port" class="col-sm-2 col-form-label">端&ensp;&ensp;口:</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="port" name="port" value="3306" required>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <label for="dbName" class="col-sm-2 col-form-label">数据库:</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="dbName" name="dbName" value="test_db" required>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <label for="username" class="col-sm-2 col-form-label">用户名:</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="username" name="username" value="root" required>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <label for="password" class="col-sm-2 col-form-label">密&ensp;&ensp;码:</label>
+            <div class="col-sm-10">
+                <input type="password" class="form-control" id="password" name="password" value="mysql" required>
+            </div>
+        </div>
+        <!-- 其他字段类似... -->
+
+        <div class="form-group row">
+            <div class="col-sm-10 offset-sm-2">
+                <button type="submit" class="btn btn-primary">连接</button>
+            </div>
+        </div>
+    </form>
+
+    <div style="min-height: 300px;border-radius: 25px;box-shadow: 0px 0px 2px 2px #b9d0e7">
+        &ensp;数据表...
+    </div>
+</div>
+
+<script th:src="@{/js/jquery-3.1.0.min.js}"></script>
+<script>
+    $(document).ready(function () {
+        $('form').on('submit', function (e) {
+            e.preventDefault(); // 阻止表单的默认提交行为
+            var dbUrl = $('#dbUrl').val();
+            var dbName = $('#dbName').val();
+            var username = $('#username').val();
+            var password = $('#password').val();
+
+            $.ajax({
+                url: '/getTables', // 后端接收数据的URL
+                type: 'POST', // 请求类型
+                data: { // 发送的数据
+                    dbUrl: dbUrl,
+                    dbName: dbName,
+                    username: username,
+                    password: password
+                },
+                success: function (response) {
+                    // 请求成功时的处理逻辑
+                    alert('生成结束！');
+                    // 你可以在这里根据response数据更新页面或执行其他操作
+                },
+                error: function (xhr, status, error) {
+                    // 请求失败时的处理逻辑
+                    alert('生成失败：' + error);
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>
