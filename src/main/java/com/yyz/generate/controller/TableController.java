@@ -34,7 +34,7 @@ public class TableController {
 
     @PostMapping("/getTables")
     public String getTables(Form form) throws SQLException {
-        generateServiceImpl.start(form);
+        generateServiceImpl.generate(form);
         return "index";
     }
 
