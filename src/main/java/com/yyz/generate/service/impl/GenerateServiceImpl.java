@@ -185,7 +185,7 @@ public class GenerateServiceImpl {
 
             List<TableFiled> fileds = getTableFields(ds, tables.get(i).getTblName());
             Table table = new Table(colNum);
-            int[] widths = new int[]{160, 250, 350, 160, 80, 80, 160, 80, 80};
+            int[] widths = new int[]{150, 200, 150, 100, 80, 80, 160, 100, 120};
             table.setWidths(widths);
 //            table.setBorderWidth(1);
             table.setPadding(0);

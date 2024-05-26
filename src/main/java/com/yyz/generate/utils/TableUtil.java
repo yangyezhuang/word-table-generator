@@ -81,7 +81,6 @@ public class TableUtil {
             // 写入文件信息
             RtfWriter2.getInstance(document, new FileOutputStream(fileName));
             document.open();
-
 //            gebTableInfoDesc(document, tables);
             genTableStructDesc(document, tables, ds);
             document.close();
@@ -92,7 +91,6 @@ public class TableUtil {
     }
 
     private static void gebTableInfoDesc(Document document, List<TableInfo> tables) throws DocumentException {
-        Paragraph ph = new Paragraph();
         Paragraph p = new Paragraph("表清单描述", new Font(Font.TIMES_ROMAN, 24, Font.NORMAL, new Color(0, 0, 0)));
         p.setAlignment(Element.ALIGN_LEFT);
         document.add(p);
@@ -126,11 +124,9 @@ public class TableUtil {
     }
 
     private static void genTableStructDesc(Document document, List<TableInfo> tables, DataSource ds) throws DocumentException, SQLException, IOException {
-
         Paragraph p = new Paragraph("表结构描述", new Font(Font.TIMES_ROMAN, 18, Font.NORMAL, new Color(0, 0, 0)));
         p.setAlignment(Element.ALIGN_CENTER);
         document.add(p);
-
 
         printMsg("共需要处理%d个表", tables.size());
         int colNum = 9;
@@ -140,36 +136,30 @@ public class TableUtil {
             String tblName = tableInfo.getTblName();
             String tblComment = tableInfo.getTblComment();
 
-
             printMsg("处理%s表开始", tableInfo);
             //写入表说明
-//                String tblTile = "" + (i + 1) + " 表名称:" + tblName + "（" + tblComment + "）";
-//                Paragraph paragraph = new Paragraph(tblTile);
-//                document.add(paragraph);
+//            String tblTile = "" + (i + 1) + " 表名称:" + tblName + "（" + tblComment + "）";
+//            Paragraph paragraph = new Paragraph(tblTile);
+//            document.add(paragraph);
 
             List<TableFiled> fileds = getTableFields(ds, tables.get(i).getTblName());
             Table table = new Table(colNum);
-            int[] widths = new int[]{160, 250, 350, 160, 80, 80, 160, 80, 80};
+            int[] widths = new int[]{150, 200, 150, 100, 80, 80, 160, 100, 120};
             table.setWidths(widths);
 //            table.setBorderWidth(1);
             table.setPadding(0);
             table.setSpacing(0);
 
-
 //            添加表名行
             String tblInfo = StringUtils.isBlank(tblComment) ? tblName : String.format("%s(%s)", tblName, tblComment);
 //            Cell headerCell = new Cell(tblInfo);
-//
 //            headerCell.disableBorderSide(15);
-//
-//
 //            headerCell.setColspan(colNum);
 //            headerCell.setHorizontalAlignment(Element.ALIGN_CENTER);
 //            table.addCell(headerCell);
             Paragraph ph = new Paragraph(tblInfo, new Font(Font.TIMES_ROMAN, 14, Font.NORMAL, new Color(0, 0, 0)));
             ph.setAlignment(Element.ALIGN_CENTER);
             document.add(ph);
-
 
             BaseFont bfComic0 = BaseFont.createFont("C:\\Windows\\Fonts\\simsunb.ttf", BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
             Font font = new Font(bfComic0, 10.5f);
@@ -180,7 +170,7 @@ public class TableUtil {
             addCell(table, "数据类型", 0, font);
             addCell(table, "长度", 0, font);
             addCell(table, "为空", 0, font);
-            addCell(table, "是否主键", 0, font);
+            addCell(table, "主键", 0, font);
             addCell(table, "约束", 0, font);
             addCell(table, "缺省值", 0, font);
             addCell(table, "备注", 0, font);
@@ -201,13 +191,9 @@ public class TableUtil {
                 addCell(table, field.getExtra());
             }
 
-
-            /**
-             * 生成表格，最后一行
-             */
+            // 生成表格最后一行
             if (k == fileds.size() - 1) {
                 TableFiled field = fileds.get(k);
-
                 addCell(table, field.getField(), 1);
                 addCell(table, field.getComment(), 1, font);
                 addCell(table, field.getType(), 1);
@@ -227,6 +213,112 @@ public class TableUtil {
         }
     }
 
+
+    /**
+     * 获取表
+     * @param ds
+     * @param databaseName
+     * @return
+     * @throws SQLException
+     */
+    private static List<TableInfo> getTableInfos(DataSource ds, String databaseName) throws SQLException {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        List<TableInfo> list = new ArrayList();
+        try {
+            conn = ds.getConnection();
+            String sql = "select TABLE_NAME,TABLE_TYPE,TABLE_COMMENT from information_schema.tables where table_schema =? order by table_name";
+
+            stmt = conn.prepareStatement(sql);
+            setParameters(stmt, Arrays.<Object>asList(databaseName));
+
+            rs = stmt.executeQuery();
+            ResultSetMetaData rsMeta = rs.getMetaData();
+
+            while (rs.next()) {
+                TableInfo row = new TableInfo();
+                row.setTblName(rs.getString(1));
+                row.setTblType(rs.getString(2));
+                row.setTblComment(rs.getString(3));
+                list.add(row);
+            }
+        } finally {
+            JdbcUtils.close(rs);
+            JdbcUtils.close(stmt);
+            JdbcUtils.close(conn);
+        }
+        return list;
+    }
+
+
+    /**
+     * 获取表字段
+     * @param ds
+     * @param tblName
+     * @return
+     * @throws SQLException
+     */
+    private static List<TableFiled> getTableFields(DataSource ds, String tblName) throws SQLException {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+//        List<TableFiled> list = Lists.newArrayList();
+        List<TableFiled> list = new ArrayList();
+        try {
+            conn = ds.getConnection();
+            //返回的列顺序是: Field,Type,Collation,Null,Key,Default,Extra,Privileges,Comment
+            String sql = "SHOW FULL FIELDS FROM " + tblName;
+            //返回的列顺序是: Field,Type,Null,Key,Default,Extra
+//            sql = "show columns FROM " + tblName;
+
+            stmt = conn.prepareStatement(sql);
+
+            rs = stmt.executeQuery();
+            ResultSetMetaData rsMeta = rs.getMetaData();
+
+            while (rs.next()) {
+                TableFiled field = new TableFiled();
+                field.setField(rs.getString(1));
+                String type = rs.getString(2);
+                String length = "";
+                if (type.contains("(")) {
+                    int idx = type.indexOf("(");
+                    length = type.substring(idx + 1, type.length() - 1);
+                    type = type.substring(0, idx);
+                }
+                field.setType(type);
+                field.setLength(length);
+                field.setNull(rs.getString(4).equalsIgnoreCase("YES") ? true : false);
+                field.setKey(rs.getString(5));
+                field.setDefaultVal(rs.getString(6));
+                field.setExtra(rs.getString(7));
+                field.setComment(rs.getString(9));
+                list.add(field);
+            }
+        } finally {
+            JdbcUtils.close(rs);
+            JdbcUtils.close(stmt);
+            JdbcUtils.close(conn);
+        }
+        return list;
+    }
+
+    /**
+     * 拼接参数
+     * @param stmt
+     * @param parameters
+     * @throws SQLException
+     */
+    private static void setParameters(PreparedStatement stmt, List<Object> parameters) throws SQLException {
+        for (int i = 0, size = parameters.size(); i < size; ++i) {
+            Object param = parameters.get(i);
+            stmt.setObject(i + 1, param);
+        }
+    }
+
+
     private static void addCell(Table table, String content, int flag) {
         addCell(table, content, -1, Element.ALIGN_CENTER, flag);
     }
@@ -243,14 +335,6 @@ public class TableUtil {
         addCell(table, content, -1, Element.ALIGN_CENTER);
     }
 
-    /**
-     * 添加表头到表格
-     *
-     * @param table
-     * @param content
-     * @param width
-     * @param align
-     */
     private static void addCell(Table table, String content, int width, int align, Font font) {
 // Font font = new Font(Font.TIMES_ROMAN, 5, Font.BOLD);
         try {
@@ -279,13 +363,6 @@ public class TableUtil {
         }
     }
 
-    /**
-     *
-     * @param table
-     * @param content
-     * @param width
-     * @param align
-     */
     private static void addCell(Table table, String content, int width, int align, int flag) {
         try {
             Font font = new Font(Font.TIMES_ROMAN, 10.5f, Font.NORMAL);
@@ -343,89 +420,6 @@ public class TableUtil {
 
     private static void printMsg(String format, Object... args) {
         System.out.println(String.format(format, args));
-    }
-
-    private static List<TableInfo> getTableInfos(DataSource ds, String databaseName) throws SQLException {
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-
-        List<TableInfo> list = new ArrayList();
-        try {
-            conn = ds.getConnection();
-            String sql = "select TABLE_NAME,TABLE_TYPE,TABLE_COMMENT from information_schema.tables where table_schema =? order by table_name";
-
-            stmt = conn.prepareStatement(sql);
-            setParameters(stmt, Arrays.<Object>asList(databaseName));
-
-            rs = stmt.executeQuery();
-            ResultSetMetaData rsMeta = rs.getMetaData();
-
-            while (rs.next()) {
-                TableInfo row = new TableInfo();
-                row.setTblName(rs.getString(1));
-                row.setTblType(rs.getString(2));
-                row.setTblComment(rs.getString(3));
-                list.add(row);
-            }
-        } finally {
-            JdbcUtils.close(rs);
-            JdbcUtils.close(stmt);
-            JdbcUtils.close(conn);
-        }
-        return list;
-    }
-
-    private static List<TableFiled> getTableFields(DataSource ds, String tblName) throws SQLException {
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-//        List<TableFiled> list = Lists.newArrayList();
-        List<TableFiled> list = new ArrayList();
-        try {
-            conn = ds.getConnection();
-            //返回的列顺序是: Field,Type,Collation,Null,Key,Default,Extra,Privileges,Comment
-            String sql = "SHOW FULL FIELDS FROM " + tblName;
-            //返回的列顺序是: Field,Type,Null,Key,Default,Extra
-//            sql = "show columns FROM " + tblName;
-
-            stmt = conn.prepareStatement(sql);
-
-            rs = stmt.executeQuery();
-            ResultSetMetaData rsMeta = rs.getMetaData();
-
-            while (rs.next()) {
-                TableFiled field = new TableFiled();
-                field.setField(rs.getString(1));
-                String type = rs.getString(2);
-                String length = "";
-                if (type.contains("(")) {
-                    int idx = type.indexOf("(");
-                    length = type.substring(idx + 1, type.length() - 1);
-                    type = type.substring(0, idx);
-                }
-                field.setType(type);
-                field.setLength(length);
-                field.setNull(rs.getString(4).equalsIgnoreCase("YES") ? true : false);
-                field.setKey(rs.getString(5));
-                field.setDefaultVal(rs.getString(6));
-                field.setExtra(rs.getString(7));
-                field.setComment(rs.getString(9));
-                list.add(field);
-            }
-        } finally {
-            JdbcUtils.close(rs);
-            JdbcUtils.close(stmt);
-            JdbcUtils.close(conn);
-        }
-        return list;
-    }
-
-    private static void setParameters(PreparedStatement stmt, List<Object> parameters) throws SQLException {
-        for (int i = 0, size = parameters.size(); i < size; ++i) {
-            Object param = parameters.get(i);
-            stmt.setObject(i + 1, param);
-        }
     }
 
 }
