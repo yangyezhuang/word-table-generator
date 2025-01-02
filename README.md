@@ -1,4 +1,4 @@
-<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">word-table-generator</h1>
+<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">three-lines-table-generator</h1>
 <h4 align="center">将数据库表结构转换为Word文档三线表</h4>
 
 
