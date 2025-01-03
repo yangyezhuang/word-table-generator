@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * @author yyz
+ * @author yangyz
  * @date 2021/12/6 16:06
  * @description
  */
@@ -40,6 +40,8 @@ public class GenerateServiceImpl implements GenerateService {
 
     @Autowired
     private CellService cellService;
+
+    private static final String FONT_STYLE = "C:\\Windows\\Fonts\\simsunb.ttf";
 
     @Value("${system.gen_file_path}")
     public String GEN_FILE_PATH;
@@ -224,7 +226,7 @@ public class GenerateServiceImpl implements GenerateService {
             ph.setAlignment(Element.ALIGN_CENTER);
             document.add(ph);
 
-            BaseFont bfComic0 = BaseFont.createFont("C:\\Windows\\Fonts\\simsunb.ttf", BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
+            BaseFont bfComic0 = BaseFont.createFont(FONT_STYLE, BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
             Font font = new Font(bfComic0, 10.5f);
 
             //添加表头行
