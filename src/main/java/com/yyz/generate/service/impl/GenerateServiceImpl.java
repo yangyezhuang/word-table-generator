@@ -9,15 +9,19 @@ import com.lowagie.text.rtf.RtfWriter2;
 import com.yyz.generate.pojo.Form;
 import com.yyz.generate.pojo.TableFiled;
 import com.yyz.generate.pojo.TableInfo;
+import com.yyz.generate.service.CellService;
+import com.yyz.generate.service.GenerateService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 import java.awt.*;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.*;
@@ -31,14 +35,17 @@ import java.util.List;
  * @description
  */
 @Service
-public class GenerateServiceImpl {
+public class GenerateServiceImpl implements GenerateService {
     private static final Logger logger = LoggerFactory.getLogger(GenerateServiceImpl.class);
+
+    @Autowired
+    private CellService cellService;
 
     @Value("${system.gen_file_path}")
     public String GEN_FILE_PATH;
 
-//    @Value("${system.file_base_name}")
-    public String FILE_BASE_NAME = "三线表.doc";
+    @Value("${system.file_base_name}")
+    public String FILE_BASE_NAME = ".doc";
 
     @Value("${system.host}")
     private String host;
@@ -55,17 +62,23 @@ public class GenerateServiceImpl {
     @Value("${system.database}")
     private String database;
 
-    public void generate(Form form) throws SQLException {
-        DataSource ds = getDataSource(form);
-        generateWord(ds, form.getDbName(), form.getDbName() + FILE_BASE_NAME);
+    public void generate(Form form) {
+        try {
+            DataSource ds = getDataSource(form);
+            generateWord(ds, form.getDbName(), form.getDbName() + FILE_BASE_NAME);
+        } catch (Exception e) {
+            logger.info("表格生成异常{}：", e);
+        }
     }
 
 
     /**
      * 连接数据库
+     *
      * @return
      */
-    private DataSource getDataSource(Form form) {
+    @Override
+    public DataSource getDataSource(Form form) {
         DruidDataSource datasource = new DruidDataSource();
         datasource.setDriverClassName("com.mysql.jdbc.Driver");
         datasource.setUrl(String.format("jdbc:mysql://%s/%s?useUnicode=true&characterEncoding=UTF-8&useSSL=false", form.getDbUrl(), form.getDbName()));
@@ -86,7 +99,7 @@ public class GenerateServiceImpl {
      * @param fileName：生成文件地址
      * @return: void
      */
-    public void generateWord(DataSource ds, String dbName, String fileName) throws SQLException {
+    public void generateWord(DataSource ds, String dbName, String fileName) {
         List<TableInfo> tables = getTableInfos(ds, dbName);
         Document document = new Document(PageSize.A4);
         try {
@@ -105,11 +118,15 @@ public class GenerateServiceImpl {
             RtfWriter2.getInstance(document, new FileOutputStream(fileName));
             document.open();
 
-//            gebTableInfoDesc(document, tables);
+            // gebTableInfoDesc(document, tables);
             genTableStructDesc(document, tables, ds);
             document.close();
-        } catch (Exception e) {
+        } catch (SQLException | FileNotFoundException e) {
             e.printStackTrace();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (DocumentException e) {
+            throw new RuntimeException(e);
         }
         logger.info("所有表【共{}个】处理完成", tables.size());
     }
@@ -117,46 +134,51 @@ public class GenerateServiceImpl {
 
     /**
      * 生成表清单
+     *
      * @param document
      * @param tables
-     * @throws DocumentException
      */
-    private void gebTableInfoDesc(Document document, List<TableInfo> tables) throws DocumentException {
-        Paragraph p = new Paragraph("表清单描述", new Font(Font.TIMES_ROMAN, 24, Font.NORMAL, new Color(0, 0, 0)));
-        p.setAlignment(Element.ALIGN_LEFT);
-        document.add(p);
+    private void gebTableInfoDesc(Document document, List<TableInfo> tables) {
+        try {
+            Paragraph p = new Paragraph("表清单描述", new Font(Font.TIMES_ROMAN, 24, Font.NORMAL, new Color(0, 0, 0)));
+            p.setAlignment(Element.ALIGN_LEFT);
+            document.add(p);
 
-        logger.info("表清单开始生成");
-        Table table = new Table(2);
-        int[] widths = new int[]{500, 900};
-        table.setWidths(widths);
-        table.setBorderWidth(1);
-        table.setPadding(0);
-        table.setSpacing(0);
+            logger.info("表清单开始生成");
+            Table table = new Table(2);
+            int[] widths = new int[]{500, 900};
+            table.setWidths(widths);
+            table.setBorderWidth(1);
+            table.setPadding(0);
+            table.setSpacing(0);
 
-        //添加表头
-        Cell headerCell = new Cell("表名");
-        headerCell.setHorizontalAlignment(Element.ALIGN_LEFT);
-        headerCell.setBackgroundColor(new Color(192, 192, 192));
-        table.addCell(headerCell);
+            //添加表头
+            Cell headerCell = new Cell("表名");
+            headerCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            headerCell.setBackgroundColor(new Color(192, 192, 192));
+            table.addCell(headerCell);
 
-        headerCell = new Cell("表描述");
-        headerCell.setHorizontalAlignment(Element.ALIGN_LEFT);
-        headerCell.setBackgroundColor(new Color(192, 192, 192));
-        table.addCell(headerCell);
-        table.endHeaders();
-        // 添加内容行
-        for (TableInfo tableInfo : tables) {
-            addCell(table, tableInfo.getTblName());
-            addCell(table, tableInfo.getTblComment());
+            headerCell = new Cell("表描述");
+            headerCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            headerCell.setBackgroundColor(new Color(192, 192, 192));
+            table.addCell(headerCell);
+            table.endHeaders();
+            // 添加内容行
+            for (TableInfo tableInfo : tables) {
+                addCell(table, tableInfo.getTblName());
+                addCell(table, tableInfo.getTblComment());
+            }
+            document.add(table);
+            logger.info("表清单生成结束");
+        } catch (Exception e) {
+            logger.info("表清单生成异常：{}", e);
         }
-        document.add(table);
-        logger.info("表清单生成结束");
     }
 
 
     /**
      * 生成表结构清单
+     *
      * @param document
      * @param tables
      * @param ds
@@ -202,7 +224,6 @@ public class GenerateServiceImpl {
             ph.setAlignment(Element.ALIGN_CENTER);
             document.add(ph);
 
-
             BaseFont bfComic0 = BaseFont.createFont("C:\\Windows\\Fonts\\simsunb.ttf", BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
             Font font = new Font(bfComic0, 10.5f);
 
@@ -233,7 +254,6 @@ public class GenerateServiceImpl {
                 addCell(table, field.getExtra());
             }
 
-
             /**
              * 生成表格，最后一行
              */
@@ -257,129 +277,30 @@ public class GenerateServiceImpl {
     }
 
     private void addCell(Table table, String content) {
-        addCell(table, content, -1, Element.ALIGN_CENTER);
+        cellService.addCell(table, content, -1, Element.ALIGN_CENTER);
     }
 
     private void addCell(Table table, String content, int flag) {
-        addCell(table, content, -1, Element.ALIGN_CENTER, flag);
+        cellService.addCell(table, content, -1, Element.ALIGN_CENTER, flag);
     }
 
     private void addCell(Table table, String content, Font font) {
-        addCell(table, content, -1, Element.ALIGN_CENTER, font);
+        cellService.addCell(table, content, -1, Element.ALIGN_CENTER, font);
     }
 
     private void addCell(Table table, String content, int flag, Font font) {
-        addCell(table, content, -1, Element.ALIGN_CENTER, flag, font);
-    }
-
-
-    /**
-     * 添加表头到表格
-     *
-     * @param table
-     * @param content
-     * @param width
-     * @param align
-     */
-    private void addCell(Table table, String content, int width, int align, Font font) {
-//        Font font = new Font(Font.TIMES_ROMAN, 5, Font.BOLD);
-        try {
-            Cell cell = new Cell(new Paragraph(content, font));
-            if (width > 0)
-                cell.setWidth(width);
-            cell.setHorizontalAlignment(align);
-            cell.disableBorderSide(15);
-            table.addCell(cell);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void addCell(Table table, String content, int width, int align) {
-        Font font = new Font(Font.TIMES_ROMAN, 10.5f, Font.NORMAL);
-        try {
-            Cell cell = new Cell(new Paragraph(content, font));
-            if (width > 0)
-                cell.setWidth(width);
-            cell.setHorizontalAlignment(align);
-            cell.disableBorderSide(15);
-            table.addCell(cell);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     *
-     * @param table
-     * @param content
-     * @param width
-     * @param align
-     */
-    private void addCell(Table table, String content, int width, int align, int flag) {
-        try {
-            Font font = new Font(Font.TIMES_ROMAN, 10.5f, Font.NORMAL);
-            Cell cell = new Cell(new Paragraph(content, font));
-            if (width > 0)
-                cell.setWidth(width);
-            cell.setHorizontalAlignment(align);
-            //0---header,有上下边界,1----有下边界
-            if (flag == 0) {
-                cell.disableBorderSide(12);
-                cell.setBorderColorTop(new Color(0, 0, 0));
-                cell.setBorderWidthTop(3f);
-                cell.setBorderColorBottom(new Color(0, 0, 0));
-                cell.setBorderWidthBottom(3f);
-//                cell.Border = Rectangle.RIGHT_BORDER | Rectangle.TOP_BORDER | Rectangle.BOTTOM_BORDER;
-//                cell.setBorderWidth(3f);
-//                cell.setBackgroundColor(new Color(192, 192, 192));
-            } else {
-                cell.disableBorderSide(13);
-                cell.setBorderColorBottom(new Color(0, 0, 0));
-                cell.setBorderWidthBottom(3f);
-            }
-            table.addCell(cell);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void addCell(Table table, String content, int width, int align, int flag, Font font) {
-        try {
-            Cell cell = new Cell(new Paragraph(content, font));
-            if (width > 0)
-                cell.setWidth(width);
-            cell.setHorizontalAlignment(align);
-            //0---header,有上下边界,1----有下边界
-            if (flag == 0) {
-                cell.disableBorderSide(12);
-                cell.setBorderColorTop(new Color(0, 0, 0));
-                cell.setBorderWidthTop(3f);
-                cell.setBorderColorBottom(new Color(0, 0, 0));
-                cell.setBorderWidthBottom(3f);
-//                cell.Border = Rectangle.RIGHT_BORDER | Rectangle.TOP_BORDER | Rectangle.BOTTOM_BORDER;
-//                cell.setBorderWidth(3f);
-//                cell.setBackgroundColor(new Color(192, 192, 192));
-            } else {
-                cell.disableBorderSide(13);
-                cell.setBorderColorBottom(new Color(0, 0, 0));
-                cell.setBorderWidthBottom(3f);
-            }
-            table.addCell(cell);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        cellService.addCell(table, content, -1, Element.ALIGN_CENTER, flag, font);
     }
 
 
     /**
      * 获取表信息
+     *
      * @param ds
      * @param databaseName
      * @return
-     * @throws SQLException
      */
-    private List<TableInfo> getTableInfos(DataSource ds, String databaseName) throws SQLException {
+    private List<TableInfo> getTableInfos(DataSource ds, String databaseName) {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
@@ -402,6 +323,8 @@ public class GenerateServiceImpl {
                 row.setTblComment(rs.getString(3));
                 list.add(row);
             }
+        } catch (SQLException e) {
+            logger.info("获取表信息异常：{}", e);
         } finally {
             JdbcUtils.close(rs);
             JdbcUtils.close(stmt);
@@ -413,12 +336,12 @@ public class GenerateServiceImpl {
 
     /**
      * 获取表字段
+     *
      * @param ds
      * @param tblName
      * @return
-     * @throws SQLException
      */
-    private List<TableFiled> getTableFields(DataSource ds, String tblName) throws SQLException {
+    private List<TableFiled> getTableFields(DataSource ds, String tblName) {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
@@ -453,6 +376,8 @@ public class GenerateServiceImpl {
                 field.setComment(rs.getString(9));
                 list.add(field);
             }
+        } catch (Exception e) {
+            logger.info("获取表字段异常：{}", e);
         } finally {
             JdbcUtils.close(rs);
             JdbcUtils.close(stmt);
@@ -464,14 +389,19 @@ public class GenerateServiceImpl {
 
     /**
      * 拼接参数
+     *
      * @param stmt
      * @param parameters
      * @throws SQLException
      */
-    private void setParameters(PreparedStatement stmt, List<Object> parameters) throws SQLException {
-        for (int i = 0, size = parameters.size(); i < size; ++i) {
-            Object param = parameters.get(i);
-            stmt.setObject(i + 1, param);
+    private void setParameters(PreparedStatement stmt, List<Object> parameters) {
+        try {
+            for (int i = 0, size = parameters.size(); i < size; ++i) {
+                Object param = parameters.get(i);
+                stmt.setObject(i + 1, param);
+            }
+        } catch (Exception e) {
+            logger.info("拼接参数异常：{}", e);
         }
     }
 

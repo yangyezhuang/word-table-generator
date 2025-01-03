@@ -2,6 +2,8 @@ package com.yyz.generate.service.impl;
 
 import com.yyz.generate.mapper.TableMapper;
 import com.yyz.generate.pojo.Column;
+import com.yyz.generate.pojo.Form;
+import com.yyz.generate.service.GenerateService;
 import com.yyz.generate.service.TableService;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
@@ -9,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -33,9 +36,15 @@ public class TableServicesImpl implements TableService {
     @Autowired
     private TableMapper tableMapper;
 
+    @Autowired
+    private GenerateService generateService;
+
+    // @Value("${system.file_base_name}")
+    public String FILE_BASE_NAME = "三线表.doc";
 
     /**
      * 获取表的元数据 表结构
+     *
      * @return
      */
     public List<Column> getUserMeta() {
@@ -72,5 +81,16 @@ public class TableServicesImpl implements TableService {
     public void getTableColumns(String tableName) {
         List<Map<String, Object>> tableColumns = tableMapper.getTableColumns(tableName);
         logger.info(tableColumns.toString());
+    }
+
+    @Override
+    public void generateAllTable(Form form) {
+        DataSource ds = generateService.getDataSource(form);
+        generateService.generateWord(ds, form.getDbName(), form.getDbName() + FILE_BASE_NAME);
+    }
+
+    @Override
+    public void generateByTableName(String tableName) {
+
     }
 }

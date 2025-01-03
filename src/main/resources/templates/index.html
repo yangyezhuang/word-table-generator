@@ -2,30 +2,11 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extra/spring-security">
 <head>
     <meta charset="UTF-8">
-    <title>Word表格生成</title>
+    <title>三线表生成</title>
     <!--    <link rel="stylesheet" type="text/css" th:href="@{/css/bootstrap.min.css}" />-->
     <link href="https://www.w3school.com.cn/lib/bs/bootstrap.css" rel="stylesheet">
 </head>
 <body>
-<!--<form>-->
-<!--    <label for="dbUrl">主&ensp;&ensp;机:</label>-->
-<!--    <input type="text" id="dbUrl" name="dbUrl" value="127.0.0.1:3306" required><br><br>-->
-
-<!--    <label for="dbUrl">端&ensp;&ensp;口:</label>-->
-<!--    <input type="text" id="port" name="port" value="3306" required><br><br>-->
-
-<!--    <label for="dbName">数据库:</label>-->
-<!--    <input type="text" id="dbName" name="dbName" value="test_db" required><br><br>-->
-
-<!--    <label for="username">用户名:</label>-->
-<!--    <input type="text" id="username" name="username" value="root" required><br><br>-->
-
-<!--    <label for="password">密&ensp;&ensp;码:</label>-->
-<!--    <input type="password" id="password" name="password" value="mysql" required><br><br>-->
-
-<!--    <input type="submit" value="Submit">-->
-<!--</form>-->
-
 <div style="width: 500px;margin: 0 auto">
     <h2 style="text-align: center;margin-bottom: 20px">表结构生成器</h2>
     <form>
@@ -88,7 +69,7 @@
             var password = $('#password').val();
 
             $.ajax({
-                url: '/getTables', // 后端接收数据的URL
+                url: '/generate/all', // 后端接收数据的URL
                 type: 'POST', // 请求类型
                 data: { // 发送的数据
                     dbUrl: dbUrl,
