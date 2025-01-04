@@ -14,8 +14,9 @@ import java.util.Map;
  */
 @Mapper
 public interface TableMapper {
-    List<Map<String, Object>> getTables();
+    @Select("SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = #{dbName} ORDER BY table_name")
+    List<String> getTables(String dbName);
 
-    @Select("SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'test_db' AND TABLE_NAME = #{tbName}")
-    List<Map<String, Object>> getTableColumns(String tableName);
+    @Select("SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = #{dbName} AND TABLE_NAME = #{tableName}")
+    List<Map<String, Object>> getTableColumns(String dbName,String tableName);
 }

@@ -3,88 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <title>三线表生成</title>
-    <!--    <link rel="stylesheet" type="text/css" th:href="@{/css/bootstrap.min.css}" />-->
     <link href="https://www.w3school.com.cn/lib/bs/bootstrap.css" rel="stylesheet">
+    <style>
+        .custom-form-control {
+            border-radius: 8px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
+        .custom-form-label {
+            font-weight: bold;
+        }
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-<div style="width: 500px;margin: 0 auto">
-    <h2 style="text-align: center;margin-bottom: 20px">表结构生成器</h2>
-    <form>
-        <div class="form-group row">
-            <label for="dbUrl" class="col-sm-2 col-form-label">主&ensp;&ensp;机:</label>
-            <div class="col-sm-10">
-                <input type="text" class="form-control" id="dbUrl" name="dbUrl" value="127.0.0.1:3306" required>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h2 class="text-center mb-4">表结构生成器</h2>
+            <form id="dbForm">
+                <div class="form-group">
+                    <label for="dbUrl" class="custom-form-label">主机:</label>
+                    <input type="text" class="form-control custom-form-control" id="dbUrl" name="dbUrl" value="127.0.0.1" placeholder="如：127.0.0.1" required>
+                </div>
+                <div class="form-group">
+                    <label for="port" class="custom-form-label">端口:</label>
+                    <input type="text" class="form-control custom-form-control" id="port" name="port" value="3306" placeholder="如：3306" required>
+                </div>
+                <div class="form-group">
+                    <label for="dbName" class="custom-form-label">数据库:</label>
+                    <input type="text" class="form-control custom-form-control" id="dbName" name="dbName" value="test_db" placeholder="如：test_db" required>
+                </div>
+                <div class="form-group">
+                    <label for="username" class="custom-form-label">用户名:</label>
+                    <input type="text" class="form-control custom-form-control" id="username" name="username" value="root" placeholder="如：root" required>
+                </div>
+                <div class="form-group">
+                    <label for="password" class="custom-form-label">密码:</label>
+                    <input type="password" class="form-control custom-form-control" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block mt-4">连接</button>
+                <div class="loading-indicator">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p class="mt-2">正在生成表结构...</p>
+                </div>
+            </form>
+            <div class="card mt-4" style="min-height: 200px; border-radius: 15px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);">
+                <div class="card-body">
+                    <p class="text-center">数据表信息将显示在这里...</p>
+                </div>
             </div>
         </div>
-
-        <div class="form-group row">
-            <label for="port" class="col-sm-2 col-form-label">端&ensp;&ensp;口:</label>
-            <div class="col-sm-10">
-                <input type="text" class="form-control" id="port" name="port" value="3306" required>
-            </div>
-        </div>
-
-        <div class="form-group row">
-            <label for="dbName" class="col-sm-2 col-form-label">数据库:</label>
-            <div class="col-sm-10">
-                <input type="text" class="form-control" id="dbName" name="dbName" value="test_db" required>
-            </div>
-        </div>
-
-        <div class="form-group row">
-            <label for="username" class="col-sm-2 col-form-label">用户名:</label>
-            <div class="col-sm-10">
-                <input type="text" class="form-control" id="username" name="username" value="root" required>
-            </div>
-        </div>
-
-        <div class="form-group row">
-            <label for="password" class="col-sm-2 col-form-label">密&ensp;&ensp;码:</label>
-            <div class="col-sm-10">
-                <input type="password" class="form-control" id="password" name="password" value="mysql" required>
-            </div>
-        </div>
-        <!-- 其他字段类似... -->
-
-        <div class="form-group row">
-            <div class="col-sm-10 offset-sm-2">
-                <button type="submit" class="btn btn-primary">连接</button>
-            </div>
-        </div>
-    </form>
-
-    <div style="min-height: 300px;border-radius: 25px;box-shadow: 0px 0px 2px 2px #b9d0e7">
-        &ensp;数据表...
     </div>
 </div>
 
 <script th:src="@{/js/jquery-3.1.0.min.js}"></script>
 <script>
     $(document).ready(function () {
-        $('form').on('submit', function (e) {
-            e.preventDefault(); // 阻止表单的默认提交行为
+        var $loadingIndicator = $('.loading-indicator');
+        $('form#dbForm').on('submit', function (e) {
+            e.preventDefault();
+            $loadingIndicator.show();
+
             var dbUrl = $('#dbUrl').val();
             var dbName = $('#dbName').val();
             var username = $('#username').val();
             var password = $('#password').val();
 
             $.ajax({
-                url: '/generate/all', // 后端接收数据的URL
-                type: 'POST', // 请求类型
-                data: { // 发送的数据
+                url: '/table/generateAll',
+                type: 'POST',
+                data: {
                     dbUrl: dbUrl,
                     dbName: dbName,
                     username: username,
                     password: password
                 },
                 success: function (response) {
-                    // 请求成功时的处理逻辑
+                    $loadingIndicator.hide();
                     alert('生成结束！');
-                    // 你可以在这里根据response数据更新页面或执行其他操作
+                    // 更新数据表信息的逻辑
                 },
                 error: function (xhr, status, error) {
-                    // 请求失败时的处理逻辑
-                    alert('生成失败：' + error);
+                    $loadingIndicator.hide();
+                    alert('生成失败：' + (xhr.responseText || error));
                 }
             });
         });

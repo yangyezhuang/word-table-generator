@@ -46,8 +46,8 @@ public class GenerateServiceImpl implements GenerateService {
     @Value("${system.gen_file_path}")
     public String GEN_FILE_PATH;
 
-    @Value("${system.file_base_name}")
-    public String FILE_BASE_NAME = ".doc";
+    @Value("${system.file_suffix}")
+    public String FILE_SUFFIX = "三线表.doc";
 
     @Value("${system.host}")
     private String host;
@@ -64,10 +64,11 @@ public class GenerateServiceImpl implements GenerateService {
     @Value("${system.database}")
     private String database;
 
+
     public void generate(Form form) {
         try {
             DataSource ds = getDataSource(form);
-            generateWord(ds, form.getDbName(), form.getDbName() + FILE_BASE_NAME);
+            generateWord(ds, form.getDbName());
         } catch (Exception e) {
             logger.info("表格生成异常{}：", e);
         }
@@ -97,19 +98,18 @@ public class GenerateServiceImpl implements GenerateService {
     /**
      * 生成word文档
      *
-     * @param ds：数据源
-     * @param fileName：生成文件地址
+     * @param dataSource
      * @return: void
      */
-    public void generateWord(DataSource ds, String dbName, String fileName) {
-        List<TableInfo> tables = getTableInfos(ds, dbName);
+    public void generateWord(DataSource dataSource, String dbName) {
+        List<TableInfo> tables = getTableInfos(dataSource, dbName);
         Document document = new Document(PageSize.A4);
         try {
             File dir = new File(GEN_FILE_PATH);
             if (!dir.exists()) {
                 dir.mkdirs();
             }
-            fileName = GEN_FILE_PATH + File.separator + fileName;
+            String fileName = GEN_FILE_PATH + File.separator + dbName + FILE_SUFFIX;
             File file = new File(fileName);
             if (file.exists() && file.isFile()) {
                 file.delete();
@@ -121,7 +121,7 @@ public class GenerateServiceImpl implements GenerateService {
             document.open();
 
             // gebTableInfoDesc(document, tables);
-            genTableStructDesc(document, tables, ds);
+            genTableStructDesc(document, tables, dataSource);
             document.close();
         } catch (SQLException | FileNotFoundException e) {
             e.printStackTrace();
@@ -298,22 +298,22 @@ public class GenerateServiceImpl implements GenerateService {
     /**
      * 获取表信息
      *
-     * @param ds
+     * @param dataSource
      * @param databaseName
      * @return
      */
-    private List<TableInfo> getTableInfos(DataSource ds, String databaseName) {
+    private List<TableInfo> getTableInfos(DataSource dataSource, String databaseName) {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
 
         List<TableInfo> list = new ArrayList();
         try {
-            conn = ds.getConnection();
+            conn = dataSource.getConnection();
             String sql = "select TABLE_NAME,TABLE_TYPE,TABLE_COMMENT from information_schema.tables where table_schema =? order by table_name";
 
             stmt = conn.prepareStatement(sql);
-            setParameters(stmt, Arrays.<Object>asList(databaseName));
+            setParameters(stmt, Arrays.asList(databaseName));
 
             rs = stmt.executeQuery();
             ResultSetMetaData rsMeta = rs.getMetaData();
@@ -347,7 +347,6 @@ public class GenerateServiceImpl implements GenerateService {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
-//        List<TableFiled> list = Lists.newArrayList();
         List<TableFiled> list = new ArrayList();
         try {
             conn = ds.getConnection();

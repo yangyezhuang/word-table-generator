@@ -14,6 +14,6 @@ public interface GenerateService {
 
     DataSource getDataSource(Form form);
 
-    void generateWord(DataSource dataSource, String DbName, String fileName);
+    void generateWord(DataSource dataSource, String DbName );
 
 }

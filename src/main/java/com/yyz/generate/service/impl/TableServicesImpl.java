@@ -12,12 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.sql.*;
+import java.util.*;
 
 /**
  * TableServicesImpl
@@ -39,8 +35,31 @@ public class TableServicesImpl implements TableService {
     @Autowired
     private GenerateService generateService;
 
-    // @Value("${system.file_base_name}")
-    public String FILE_BASE_NAME = "三线表.doc";
+
+    @Override
+    public List<Map<String, Object>> getTableColumns(String dbName,String tableName) {
+        List<Map<String, Object>> tableColumns = tableMapper.getTableColumns(dbName,tableName);
+        logger.info(tableColumns.toString());
+        return tableColumns;
+    }
+
+    @Override
+    public void generateAllTable(Form form) {
+        DataSource dataSource = generateService.getDataSource(form);
+        generateService.generateWord(dataSource, form.getDbName());
+    }
+
+    @Override
+    public void generateByTableName(String tableName) {
+
+    }
+
+    @Override
+    public List<String> getTable(String dbName) {
+        List<String> tables = tableMapper.getTables(dbName);
+        logger.info("{}库：{}",dbName,tables.toString());
+        return tables;
+    }
 
     /**
      * 获取表的元数据 表结构
@@ -75,22 +94,5 @@ public class TableServicesImpl implements TableService {
             e.printStackTrace();
         }
         return columnList;
-    }
-
-    @Override
-    public void getTableColumns(String tableName) {
-        List<Map<String, Object>> tableColumns = tableMapper.getTableColumns(tableName);
-        logger.info(tableColumns.toString());
-    }
-
-    @Override
-    public void generateAllTable(Form form) {
-        DataSource ds = generateService.getDataSource(form);
-        generateService.generateWord(ds, form.getDbName(), form.getDbName() + FILE_BASE_NAME);
-    }
-
-    @Override
-    public void generateByTableName(String tableName) {
-
     }
 }
